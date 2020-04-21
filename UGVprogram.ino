@@ -93,8 +93,8 @@ const double KP = 0.023;
 const double KD = 0.0;
 double lastError = 0;
 const int LINE_POSITION_GOAL = 3500;
-const unsigned char SET_SPEED = 100; // The goal speed of the motors
-const unsigned char MAX_SPEED = 100; // Set max speed of the motors.
+const unsigned char SET_SPEED = 40; // The goal speed of the motors
+const unsigned char MAX_SPEED = 40; // Set max speed of the motors.
 
 //            SERVO INITIALIZATION
 PWMServo mountingServo;
