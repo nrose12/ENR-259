@@ -1,13 +1,14 @@
+
 #include <QTRSensors.h>
 #include <PWMServo.h>
-#include "TB67H420FTG.h"
+#include <TB67H420FTG.h>
 
 /* Edit these values as needed */
 #define RED_THRESHOLD 8             // Lower this value to increase red detection sensitivity (default 8)
 #define RED_COUNT_TRIGGER 20        // The number of red counts to see before releasing the UGV
 #define MS_DELAY_BETWEEN_SENSOR_READINGS 200  // The ms delay time between color sensor readings
 #define SERVO_ENGAGE_POSITION 180   // This is the position when mounted to the UAV
-#define SERVO_DISENGAGE_POSITION 0  // This is the position to allow the UGV to dismount from the UAV
+#define SERVO_DISENGAGE_POSITION 110  // This is the position to allow the UGV to dismount from the UAV
 
 /*
  * DESCRIPTION:
@@ -32,7 +33,7 @@
  * 1. Engages the servo, this is intended to be used to attach the UGV to the UAV
  * 2. Disengages the servo, this is intended to be used to remove the UGV from the UAV
  * 3. Starts the Detect sequence to look for red and once the variables are met, detach the robot and line follow
- * 4. Displays QTR sensor readings using calibrated values (good for testing your hookup and calibration)
+ * 4. Displays QTR sensor readings using calibrated values (good for testing your hookup and calibration)  
  * 5. Stops the current action, intended for stopping the Detect sequence which also resets the red count
  * (Inputs that are not recognized will also call option 4, the stop command)
  */
@@ -83,7 +84,7 @@ void displayMenu();
 void displayQTRReadings();
 
 //             MOTOR DRIVER INITIALIZATION
-TB67H420FTG driver(12, 11, 10, 9, 8, 7); // Set the INA1, INA2, PWMA, INB1, INB2, PWMB pins (in that order)
+TB67H420FTG driver(12, 11, 10, 7, 8, 9); // Set the INA1, INA2, PWMA, INB1, INB2, PWMB pins (in that order)
 
 //                PID PROPERTIES
 // These variables are used to control the course correction of the UGV when following the line
@@ -92,8 +93,8 @@ const double KP = 0.023;
 const double KD = 0.0;
 double lastError = 0;
 const int LINE_POSITION_GOAL = 3500;
-const unsigned char SET_SPEED = 25; // The goal speed of the motors
-const unsigned char MAX_SPEED = 25; // Set max speed of the motors.
+const unsigned char SET_SPEED = 100; // The goal speed of the motors
+const unsigned char MAX_SPEED = 100; // Set max speed of the motors.
 
 //            SERVO INITIALIZATION
 PWMServo mountingServo;
@@ -131,7 +132,8 @@ void setup() {
 
   //                  MOTOR SETUP
   driver.init();
-
+  driver.setMotorAPower(40);
+  driver.setMotorBPower(40);
   //                  SERVO SETUP
   mountingServo.attach(SERVO_PIN);  // attaches the servo on pin to the servo object
 
@@ -188,6 +190,7 @@ void loop() {
     case STATE_QTR_DISPLAY:
       displayQTRReadings();
       break;
+        
     default:
       // Intentionally blank
       break;
@@ -209,7 +212,8 @@ void checkForSerialInputs() {
         userInput == STATE_DISENGAGE_SERVO ||
         userInput == STATE_DETECT_RED ||
         userInput == STATE_QTR_DISPLAY ||
-        userInput == STATE_PAUSE) {
+        userInput == STATE_PAUSE ||
+        userInput == STATE_LINE_FOLLOW) {
       Serial.print("User selected option ");
       Serial.println(userInput);
       currentState = userInput;
@@ -236,6 +240,7 @@ void displayMenu() {
   Serial.println("   3. Activate Red Detection and drop algorithm");
   Serial.println("   4. Display QTR Sensor Readings");
   Serial.println("   5. Stop current action");
+  Serial.println("   6. State Line Follow");
   Serial.println("------------------------------------------------");
 }
 
@@ -302,7 +307,7 @@ void detectRed() {
 
     // If the color red is detected 20 times in a row since it will release the robot and move onto line follow
     if (redCount == RED_COUNT_TRIGGER) {
-      mountingServo.write(SERVO_ENGAGE_POSITION);
+      mountingServo.write(SERVO_DISENGAGE_POSITION);
       currentState = STATE_LINE_FOLLOW;
     }
   } else if (rgbValues[BLUE] < rgbValues[RED] && rgbValues[BLUE] < rgbValues[GREEN]) {
